@@ -76,6 +76,39 @@
             justify-content: center;
             height: 100%;
             max-height: 600px;
+
+            column-gap: 40px;
+        }
+
+        .channel-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100%;
+        }
+
+        .group-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #e0e0e0;
+            text-align: center;
+            margin-bottom: 10px;
+
+            min-height: 5vh;
+        }
+
+        .group-channels {
+            display: flex;
+            gap: 40px;
+            align-items: center;
+            height: 100%;
+            position: relative;
+        }
+
+        .group-divider {
+            width: 2px;
+            height: 70%;
+            background: black;
         }
 
         .channel {
@@ -92,6 +125,7 @@
             margin-bottom: 10px;
             color: #e0e0e0;
             text-align: center;
+            min-height: 5vh;
         }
 
         .fader-container {
@@ -112,7 +146,7 @@
             direction: rtl;
             background: linear-gradient(to top, #4CAF50 0%, #FFC107 50%, #F44336 100%);
             border-radius: 4px;
-            width: 20px;
+            width: 10px;
             border: 2px solid black;
             cursor: pointer;
             z-index: 2;
@@ -188,8 +222,8 @@
         return;
       }
 
-      // Create channel sliders
-      createChannels(window.rm_config.channels);
+      // Create channel groups
+      createChannelGroups(window.rm_config.channel_groups);
 
       // Connect WebSocket
       connect();
@@ -198,70 +232,98 @@
     }
   }
 
-  function createChannels(channels) {
+  function createChannelGroups(channelGroups) {
     channelsContainer.innerHTML = '';
     window.fadersByCC = {};  // Reset the map
 
-    channels.forEach((channel) => {
-      const channelDiv = document.createElement('div');
-      channelDiv.className = 'channel';
+    channelGroups.forEach((group, index) => {
+      const groupDiv = document.createElement('div');
+      groupDiv.className = 'channel-group';
 
-      const label = document.createElement('div');
-      label.className = 'channel-label';
-      label.textContent = channel.title;
+      // Add group title if it exists and is not empty
+      // if (group.title && group.title.trim()) {
+        const groupTitle = document.createElement('div');
+        groupTitle.className = 'group-title';
+        groupTitle.textContent = group.title;
+        groupDiv.appendChild(groupTitle);
+      // }
 
-      const faderContainer = document.createElement('div');
-      faderContainer.className = 'fader-container';
+      const channelsDiv = document.createElement('div');
+      channelsDiv.className = 'group-channels';
 
-      const fader = document.createElement('input');
-      fader.type = 'range';
-      fader.className = 'fader';
-      fader.min = '0';
-      fader.max = '127';
-      fader.value = '0';  // Start at 0 (bottom position)
-      fader.orient = 'vertical';
-      fader.dataset.cc = channel.cc;
+      // Create channels within this group
+      group.channels.forEach((channel) => {
+        const channelDiv = document.createElement('div');
+        channelDiv.className = 'channel';
 
-      const valueDisplay = document.createElement('div');
-      valueDisplay.className = 'value-display';
-      valueDisplay.textContent = '0';  // Display shows 0 at bottom
+        const label = document.createElement('div');
+        label.className = 'channel-label';
+        label.textContent = channel.title;
 
-      const ccNumber = document.createElement('div');
-      ccNumber.className = 'cc-number';
-      ccNumber.textContent = `CC ${channel.cc}`;
+        const faderContainer = document.createElement('div');
+        faderContainer.className = 'fader-container';
 
-      // Store fader and display references for MIDI updates
-      window.fadersByCC[channel.cc] = {
-        fader: fader,
-        valueDisplay: valueDisplay
-      };
+        const fader = document.createElement('input');
+        fader.type = 'range';
+        fader.className = 'fader';
+        fader.min = '0';
+        fader.max = '127';
+        fader.value = '0';  // Start at 0 (bottom position)
+        fader.orient = 'vertical';
+        fader.dataset.cc = channel.cc;
 
-      // Handle fader changes
-      fader.addEventListener('input', (e) => {
-        // Direct value - CSS transform flips the slider so 0 is at bottom
-        const value = parseInt(e.target.value);
-        valueDisplay.textContent = value;
+        const valueDisplay = document.createElement('div');
+        valueDisplay.className = 'value-display';
+        valueDisplay.textContent = '0';  // Display shows 0 at bottom
 
-        // Send MIDI CC message via WebSocket
-        if (window.ws && window.ws.readyState === WebSocket.OPEN) {
-          const message = JSON.stringify({
-            type: 'cc',
-            cc: channel.cc,
-            value: value
-          });
-          window.ws.send(message);
-        }
+        const ccNumber = document.createElement('div');
+        ccNumber.className = 'cc-number';
+        ccNumber.textContent = `CC ${ channel.cc }`;
+
+        // Store fader and display references for MIDI updates
+        window.fadersByCC[channel.cc] = {
+          fader: fader,
+          valueDisplay: valueDisplay
+        };
+
+        // Handle fader changes
+        fader.addEventListener('input', (e) => {
+          // Direct value - CSS transform flips the slider so 0 is at bottom
+          const value = parseInt(e.target.value);
+          valueDisplay.textContent = value;
+
+          // Send MIDI CC message via WebSocket
+          if (window.ws && window.ws.readyState === WebSocket.OPEN) {
+            const message = JSON.stringify({
+              type: 'cc',
+              cc: channel.cc,
+              value: value
+            });
+            window.ws.send(message);
+          }
+        });
+
+        faderContainer.appendChild(fader);
+
+        channelDiv.appendChild(label);
+        channelDiv.appendChild(faderContainer);
+        channelDiv.appendChild(valueDisplay);
+        channelDiv.appendChild(ccNumber);
+
+        channelsDiv.appendChild(channelDiv);
       });
 
-      faderContainer.appendChild(fader);
+      groupDiv.appendChild(channelsDiv);
+      channelsContainer.appendChild(groupDiv);
 
-      channelDiv.appendChild(label);
-      channelDiv.appendChild(faderContainer);
-      channelDiv.appendChild(valueDisplay);
-      channelDiv.appendChild(ccNumber);
-
-      channelsContainer.appendChild(channelDiv);
+      if (index < channelGroups.length - 1) {
+        const groupDivider = document.createElement('div')
+        groupDivider.className = 'group-divider';
+        channelsContainer.appendChild(groupDivider);
+      }
     });
+
+    // channelsContainer.removeChild(.childElementCount
   }
 
   function connect() {
@@ -295,7 +357,7 @@
             const faderInfo = window.fadersByCC[cc];
             faderInfo.fader.value = value;
             faderInfo.valueDisplay.textContent = value;
-            console.log(`Updated slider for CC ${cc} to value ${value}`);
+            console.log(`Updated slider for CC ${ cc } to value ${ value }`);
           }
         }
       } catch (e) {

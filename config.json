@@ -1,26 +1,41 @@
 {
   "midi_interface_out": "IAC Driver Remote Mixer",
   "midi_interface_in": "IAC Driver Loopback Bus",
-  "channels": [
+  "channel_groups": [
     {
-      "cc": 21,
-      "title": "Music"
+      "title": "Vocals",
+      "channels": [
+        {
+          "cc": 21,
+          "title": "Vox 1"
+        },
+        {
+          "cc": 22,
+          "title": "Vox 2"
+        }
+      ]
     },
     {
-      "cc": 22,
-      "title": "Vox 1"
+      "title": "Instruments",
+      "channels": [
+        {
+          "cc": 23,
+          "title": "Guitar"
+        },
+        {
+          "cc": 24,
+          "title": "Music"
+        }
+      ]
     },
     {
-      "cc": 23,
-      "title": "Vox 2"
-    },
-    {
-      "cc": 24,
-      "title": "Guitar"
-    },
-    {
-      "cc": 25,
-      "title": "Monitor"
+      "title": "",
+      "channels": [
+        {
+          "cc": 25,
+          "title": "Monitor"
+        }
+      ]
     }
   ]
 }

@@ -131,21 +131,16 @@ def midi_listener_thread():
     """Listen for incoming MIDI events and broadcast to connected clients"""
     global midi_in, config
 
-    # Build a map of CC values to channel info
+    # Build a map of CC values to channel info from channel_groups
     cc_map = {}
     if config:
-        for channel in config.get(
-                'channels',
-                []):
-            cc = channel.get(
-                'cc')
-            if cc is not None:
-                if cc not in cc_map:
-                    cc_map[
-                        cc] = []
-                cc_map[
-                    cc].append(
-                    channel)
+        for group in config.get('channel_groups', []):
+            for channel in group.get('channels', []):
+                cc = channel.get('cc')
+                if cc is not None:
+                    if cc not in cc_map:
+                        cc_map[cc] = []
+                    cc_map[cc].append(channel)
 
     print(
         f"MIDI CC map: {cc_map}")
