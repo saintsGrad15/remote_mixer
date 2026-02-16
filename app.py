@@ -1,6 +1,7 @@
-from flask import Flask, send_from_directory
+from flask import Flask, send_from_directory, jsonify
 from flask_sock import Sock
 from flask_cors import CORS
+import json
 
 app = Flask(__name__, static_folder='static')
 
@@ -15,6 +16,17 @@ sock = Sock(app)
 def index():
     """Serve the index.html file"""
     return send_from_directory('static', 'index.html')
+
+
+@app.route('/config')
+def get_config():
+    """Serve the configuration file"""
+    try:
+        with open('config.json', 'r') as f:
+            config = json.load(f)
+        return jsonify(config)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @sock.route('/ws')

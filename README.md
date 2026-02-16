@@ -52,11 +52,34 @@ The server will start on `http://localhost:5001`
 - `GET /` - Serves the static index.html file
 - `WebSocket /ws` - WebSocket endpoint for real-time bidirectional communication
 
+## Configuration
+
+The application uses a `config.json` file to define MIDI channels and interface settings:
+
+```json
+{
+  "midi_interface": "Remote Mixer IAC Driver",
+  "channels": [
+    {
+      "cc": 1,
+      "title": "Channel 1"
+    },
+    ...
+  ]
+}
+```
+
+- **midi_interface**: Name of the MIDI interface to use
+- **channels**: Array of channel objects, each with:
+  - **cc**: MIDI Continuous Controller number
+  - **title**: Display name for the channel
+
 ## Project Structure
 
 ```
 remote_mixer/
 ├── app.py              # Main Flask application
+├── config.json         # MIDI channel configuration
 ├── static/
 │   └── index.html      # Frontend HTML with WebSocket client
 ├── pyproject.toml      # Project dependencies
