@@ -1,0 +1,26 @@
+{
+  "midi_interface": "IAC Driver Remote Mixer",
+  "channels": [
+    {
+      "cc": 21,
+      "title": "Music"
+    },
+    {
+      "cc": 21,
+      "title": "Vox 1"
+    },
+    {
+      "cc": 23,
+      "title": "Vox 2"
+    },
+    {
+      "cc": 24,
+      "title": "Guitar"
+    },
+    {
+      "cc": 25,
+      "title": "Monitor"
+    }
+  ]
+}
+
