@@ -1,0 +1,19 @@
+[project]
+name = "remote-mixer"
+version = "0.1.0"
+description = "Flask server with WebSocket support"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "flask>=3.0.0",
+    "flask-sock>=0.7.0",
+    "flask-cors>=4.0.0",
+    "python-rtmidi>=1.5.8",
+]
+
+[dependency-groups]
+dev = [
+    "websockets>=16.0",
+]
+
+
