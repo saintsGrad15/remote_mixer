@@ -12,8 +12,8 @@ A Flask server with WebSocket support and CORS disabled for real-time communicat
 - Simple message echo demo
 
 ## TODO
-* Send changes to other clients
-* Poll for connection
+* Send changes to other clients [DONE]
+* Poll for connection [SEMI-DONE]
 * Expose color and/or grouping in UI
 
 ## Prerequisites

@@ -170,7 +170,8 @@
 </div>
 
 <script>
-  let ws = null;
+  window.ws = null;
+  window.wsHealthCheckTimeout = null;
   window.rm_config = null;
   window.fadersByCC = {};  // Map of CC values to fader elements
   const statusDiv = document.getElementById('status');
@@ -242,13 +243,13 @@
         valueDisplay.textContent = value;
 
         // Send MIDI CC message via WebSocket
-        if (ws && ws.readyState === WebSocket.OPEN) {
+        if (window.ws && window.ws.readyState === WebSocket.OPEN) {
           const message = JSON.stringify({
             type: 'cc',
             cc: channel.cc,
             value: value
           });
-          ws.send(message);
+          window.ws.send(message);
         }
       });
 
@@ -269,15 +270,16 @@
       : 'ws:';
     const wsUrl = `${ protocol }//${ window.location.host }/ws`;
 
-    ws = new WebSocket(wsUrl);
+    cancelHealthCheck();
+    window.ws = new WebSocket(wsUrl);
 
-    ws.onopen = function (event) {
+    window.ws.onopen = (event) => {
       console.log('WebSocket connected');
       statusDiv.textContent = 'Status: Connected';
       statusDiv.className = 'connected';
     };
 
-    ws.onmessage = function (event) {
+    window.ws.onmessage = (event) => {
       console.log('Message received:', event.data);
 
       try {
@@ -301,18 +303,37 @@
       }
     };
 
-    ws.onerror = function (error) {
+    window.ws.onerror = function (error) {
       console.error('WebSocket error:', error);
     };
 
-    ws.onclose = function (event) {
+    window.ws.onclose = function (event) {
       console.log('WebSocket disconnected');
       statusDiv.textContent = 'Status: Disconnected';
       statusDiv.className = 'disconnected';
 
       // Attempt to reconnect after 3 seconds
-      setTimeout(connect, 3000);
+      setTimeout(connect, 1500);
     };
+
+    scheduleNextHealthCheck();
+  }
+
+  function healthCheck() {
+    const message = JSON.stringify({
+      type: 'healthcheck'
+    });
+    window.ws.send(message);
+
+    window.wsHealthCheckTimeout = setTimeout(healthCheck, 1500);
+  }
+
+  function scheduleNextHealthCheck() {
+    window.wsHealthCheckTimeout = setTimeout(healthCheck, 1500);
+  }
+
+  function cancelHealthCheck() {
+    clearTimeout(window.wsHealthCheckTimeout);
   }
 
   // Initialize on page load
