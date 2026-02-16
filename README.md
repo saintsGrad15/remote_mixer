@@ -11,6 +11,11 @@ A Flask server with WebSocket support and CORS disabled for real-time communicat
 - Auto-reconnecting WebSocket client
 - Simple message echo demo
 
+## TODO
+* Send changes to other clients
+* Poll for connection
+* Expose color and/or grouping in UI
+
 ## Prerequisites
 
 - Python 3.11 or higher
@@ -58,7 +63,7 @@ The application uses a `config.json` file to define MIDI channels and interface 
 
 ```json
 {
-  "midi_interface": "Remote Mixer IAC Driver",
+  "midi_interface_out": "Remote Mixer IAC Driver",
   "channels": [
     {
       "cc": 1,

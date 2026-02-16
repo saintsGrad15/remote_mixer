@@ -1,12 +1,13 @@
 {
-  "midi_interface": "IAC Driver Remote Mixer",
+  "midi_interface_out": "IAC Driver Remote Mixer",
+  "midi_interface_in": "IAC Driver Loopback Bus",
   "channels": [
     {
       "cc": 21,
       "title": "Music"
     },
     {
-      "cc": 21,
+      "cc": 22,
       "title": "Vox 1"
     },
     {

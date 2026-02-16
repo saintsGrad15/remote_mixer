@@ -172,6 +172,7 @@
 <script>
   let ws = null;
   window.rm_config = null;
+  window.fadersByCC = {};  // Map of CC values to fader elements
   const statusDiv = document.getElementById('status');
   const channelsContainer = document.getElementById('channels');
 
@@ -198,6 +199,7 @@
 
   function createChannels(channels) {
     channelsContainer.innerHTML = '';
+    window.fadersByCC = {};  // Reset the map
 
     channels.forEach((channel) => {
       const channelDiv = document.createElement('div');
@@ -215,7 +217,7 @@
       fader.className = 'fader';
       fader.min = '0';
       fader.max = '127';
-      fader.value = '0';  // Start at 127 (bottom position)
+      fader.value = '0';  // Start at 0 (bottom position)
       fader.orient = 'vertical';
       fader.dataset.cc = channel.cc;
 
@@ -225,7 +227,13 @@
 
       const ccNumber = document.createElement('div');
       ccNumber.className = 'cc-number';
-      ccNumber.textContent = `CC ${ channel.cc }`;
+      ccNumber.textContent = `CC ${channel.cc}`;
+
+      // Store fader and display references for MIDI updates
+      window.fadersByCC[channel.cc] = {
+        fader: fader,
+        valueDisplay: valueDisplay
+      };
 
       // Handle fader changes
       fader.addEventListener('input', (e) => {
@@ -240,7 +248,6 @@
             cc: channel.cc,
             value: value
           });
-          console.log(message);
           ws.send(message);
         }
       });
@@ -272,7 +279,26 @@
 
     ws.onmessage = function (event) {
       console.log('Message received:', event.data);
-      // Handle incoming messages if needed
+
+      try {
+        const data = JSON.parse(event.data);
+
+        // Handle MIDI CC updates from server
+        if (data.type === 'midi_cc_update') {
+          const cc = data.cc;
+          const value = data.value;
+
+          // Update the corresponding fader and display if it exists
+          if (window.fadersByCC && window.fadersByCC[cc]) {
+            const faderInfo = window.fadersByCC[cc];
+            faderInfo.fader.value = value;
+            faderInfo.valueDisplay.textContent = value;
+            console.log(`Updated slider for CC ${cc} to value ${value}`);
+          }
+        }
+      } catch (e) {
+        console.log('Received non-JSON message:', event.data);
+      }
     };
 
     ws.onerror = function (error) {
