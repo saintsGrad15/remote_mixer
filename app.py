@@ -1,23 +1,14 @@
-from flask import \
-    Flask, \
-    send_from_directory, \
-    jsonify
-from flask_sock import \
-    Sock
-from flask_cors import \
-    CORS
-import \
-    json
-import \
-    rtmidi
-import \
-    threading
-import \
-    time
+from flask import Flask, send_from_directory, jsonify
+from flask_sock import Sock
+from flask_cors import CORS
+import json
+import rtmidi
+import threading
+import time
 
 app = Flask(
     __name__,
-    static_folder='static')
+    static_folder='static/dist')
 
 # Disable CORS completely
 CORS(
@@ -134,13 +125,21 @@ def midi_listener_thread():
     # Build a map of CC values to channel info from channel_groups
     cc_map = {}
     if config:
-        for group in config.get('channel_groups', []):
-            for channel in group.get('channels', []):
-                cc = channel.get('cc')
+        for group in config.get(
+                'channel_groups',
+                []):
+            for channel in group.get(
+                    'channels',
+                    []):
+                cc = channel.get(
+                    'cc')
                 if cc is not None:
                     if cc not in cc_map:
-                        cc_map[cc] = []
-                    cc_map[cc].append(channel)
+                        cc_map[
+                            cc] = []
+                    cc_map[
+                        cc].append(
+                        channel)
 
     print(
         f"MIDI CC map: {cc_map}")
@@ -214,9 +213,16 @@ midi_listener.start()
     '/')
 def index():
     """Serve the index.html file"""
-    return send_from_directory(
-        'static',
-        'index.html')
+    # If a Vite build exists in static/dist, serve that index.html so the SPA works
+    try:
+        return send_from_directory(
+            'static/dist',
+            'index.html')
+    except Exception:
+        # Fall back to legacy static/index.html (unbuilt)
+        return send_from_directory(
+            'static',
+            'index.html')
 
 
 @app.route(
@@ -332,6 +338,41 @@ def websocket(
         ws)
     print(
         f"Client disconnected. Total clients: {len(connected_clients)}")
+
+
+# Catch-all route for SPA (serve built index.html for unknown routes)
+@app.route(
+    '/<path:requested_path>')
+def catch_all(
+        requested_path):
+    # If the path looks like a static asset, let Flask serve from static/
+    if requested_path.startswith(
+            'static/'):
+        # strip leading 'static/' since send_from_directory serves from the static folder
+        asset_path = requested_path[
+            len('static/'):] if requested_path.startswith(
+            'static/') else requested_path
+        return send_from_directory(
+            'static',
+            asset_path)
+
+    # Don't intercept API or websocket routes
+    if requested_path.startswith(
+            'config') or requested_path.startswith(
+            'ws'):
+        return jsonify(
+            {
+                "error": "Not found"}), 404
+
+    # Otherwise serve the SPA index (prefer built dist)
+    try:
+        return send_from_directory(
+            'static/dist',
+            'index.html')
+    except Exception:
+        return send_from_directory(
+            'static',
+            'index.html')
 
 
 if __name__ == '__main__':

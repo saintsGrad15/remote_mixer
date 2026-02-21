@@ -14,7 +14,11 @@ A Flask server with WebSocket support and CORS disabled for real-time communicat
 ## TODO
 * Send changes to other clients [DONE]
 * Poll for connection [SEMI-DONE]
-* Expose color and/or grouping in UI
+* Expose color and/or grouping in UI [DONE]
+* Expose mute
+* Expose reverb send
+* Try to make fader clicks relative, currently the handle jumps to the clicked position
+* Try to convert the application to Vue
 
 ## Prerequisites
 
@@ -98,3 +102,29 @@ The server runs in debug mode by default. Any changes to `app.py` will automatic
 
 To modify the WebSocket behavior, edit the `websocket()` function in `app.py`.
 
+## Frontend (Vite + Vue)
+
+A Vite-built Vue SPA has been added. The build output is written to `static/dist` so the Flask server can serve the static bundle.
+
+Local development:
+
+```bash
+# install node deps
+npm install
+# run the Vite dev server (proxies /config and /ws to Flask)
+npm run dev
+# in a separate terminal start the Flask server
+python app.py
+```
+
+Build for production (outputs to `static/dist`):
+
+```bash
+npm run build
+# then run Flask normally to serve the built SPA
+python app.py
+```
+
+Notes:
+- Node 16+ recommended
+- The Flask server will prefer `static/dist/index.html` when present, falling back to the legacy `static/index.html` otherwise.
