@@ -25,7 +25,7 @@
     }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
     /* keep App.vue styles minimal */
     #remote-mixer {
         height: 100vh;
@@ -41,7 +41,7 @@
         min-height: 0; /* allow the grid row to properly constrain children */
         overflow: auto;
 
-        padding-top: 20px;
-        padding-bottom: 20px;
+        padding-top: 40px;
+        padding-bottom: 40px;
     }
 </style>

@@ -24,16 +24,20 @@
         },
         {
           "cc": 24,
-          "title": "Music"
+          "title": "Keys"
         }
       ]
     },
     {
-      "title": "",
+      "title": "Main",
       "channels": [
         {
           "cc": 25,
           "title": "Monitor"
+        },
+        {
+          "cc": 7,
+          "title": "Master"
         }
       ]
     }

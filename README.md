@@ -15,10 +15,15 @@ A Flask server with WebSocket support and CORS disabled for real-time communicat
 * Send changes to other clients [DONE]
 * Poll for connection [SEMI-DONE]
 * Expose color and/or grouping in UI [DONE]
-* Expose mute
-* Expose reverb send
+* Expose
+  * Mute
+  * Monitor send
+  * Reverb send
 * Try to make fader clicks relative, currently the handle jumps to the clicked position
-* Try to convert the application to Vue
+* Try to convert the application to Vue [DONE]
+* Enable setting a channel to disabled from the UI, which will cause the server to ignore changes to that channel and not send updates for it to clients
+* Add tick marks
+* Make values editable
 
 ## Prerequisites
 

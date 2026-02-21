@@ -90,7 +90,7 @@
     }
 </script>
 
-<style lang="css" scoped>
+<style lang="scss" scoped>
     #channels {
         display: flex;
         gap: 40px;
