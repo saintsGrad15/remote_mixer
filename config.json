@@ -32,11 +32,11 @@
       "title": "Main",
       "channels": [
         {
-          "cc": 25,
+          "cc": 28,
           "title": "Monitor"
         },
         {
-          "cc": 7,
+          "cc": 29,
           "title": "Master"
         }
       ]
