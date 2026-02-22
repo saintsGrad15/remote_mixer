@@ -12,16 +12,18 @@ A Flask server with WebSocket support and CORS disabled for real-time communicat
 - Simple message echo demo
 
 ## TODO
+
 * Send changes to other clients [DONE]
 * Poll for connection [SEMI-DONE]
 * Expose color and/or grouping in UI [DONE]
 * Expose
-  * Mute
-  * Monitor send
-  * Reverb send
+    * Mute
+    * Monitor send
+    * Reverb send
 * Try to make fader clicks relative, currently the handle jumps to the clicked position
 * Try to convert the application to Vue [DONE]
-* Enable setting a channel to disabled from the UI, which will cause the server to ignore changes to that channel and not send updates for it to clients
+* Enable setting a channel to disabled from the UI, which will cause the server to ignore changes to that channel and
+  not send updates for it to clients
 * Add tick marks
 * Make values editable
 
@@ -85,8 +87,8 @@ The application uses a `config.json` file to define MIDI channels and interface 
 
 - **midi_interface**: Name of the MIDI interface to use
 - **channels**: Array of channel objects, each with:
-  - **cc**: MIDI Continuous Controller number
-  - **title**: Display name for the channel
+    - **cc**: MIDI Continuous Controller number
+    - **title**: Display name for the channel
 
 ## Project Structure
 
@@ -109,7 +111,8 @@ To modify the WebSocket behavior, edit the `websocket()` function in `app.py`.
 
 ## Frontend (Vite + Vue)
 
-A Vite-built Vue SPA has been added. The build output is written to `static/dist` so the Flask server can serve the static bundle.
+A Vite-built Vue SPA has been added. The build output is written to `static/dist` so the Flask server can serve the
+static bundle.
 
 Local development:
 
@@ -131,5 +134,7 @@ python app.py
 ```
 
 Notes:
+
 - Node 16+ recommended
-- The Flask server will prefer `static/dist/index.html` when present, falling back to the legacy `static/index.html` otherwise.
+- The Flask server will prefer `static/dist/index.html` when present, falling back to the legacy `static/index.html`
+  otherwise.

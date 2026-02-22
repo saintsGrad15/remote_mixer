@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { ref } from "vue"
 
 // Composable to manage a single relative pointer drag session.
 // API: const d = useRelativeDrag();
@@ -36,7 +36,7 @@ export function useRelativeDrag() {
 
     _move = function (ev) {
       if (!_state) return
-      if (typeof _state.pointerId === 'number' && ev.pointerId !== _state.pointerId) return
+      if (typeof _state.pointerId === "number" && ev.pointerId !== _state.pointerId) return
 
       const pos = _state.isVertical
         ? ev.clientY
@@ -55,17 +55,17 @@ export function useRelativeDrag() {
       onEnd && onEnd()
     }
 
-    window.addEventListener('pointermove', _move)
-    window.addEventListener('pointerup', _up)
-    window.addEventListener('pointercancel', _up)
+    window.addEventListener("pointermove", _move)
+    window.addEventListener("pointerup", _up)
+    window.addEventListener("pointercancel", _up)
     try { element.setPointerCapture && element.setPointerCapture(e.pointerId) } catch (_) {}
 
     function cleanup() {
       if (!_state) return
       isDragging.value = false
-      window.removeEventListener('pointermove', _move)
-      window.removeEventListener('pointerup', _up)
-      window.removeEventListener('pointercancel', _up)
+      window.removeEventListener("pointermove", _move)
+      window.removeEventListener("pointerup", _up)
+      window.removeEventListener("pointercancel", _up)
       try { _state.element && _state.element.releasePointerCapture && _state.element.releasePointerCapture(_state.pointerId) } catch (_) {}
       _state = null
       _move = null

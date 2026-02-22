@@ -4,32 +4,44 @@
             <div class="channel-group">
                 <div class="group-title">{{ group.title }}</div>
                 <div class="group-channels">
-                    <div v-for="channel in group.channels" :key="channel.cc" class="channel">
+                    <div v-for="channel in group.channels" :key="channel.volume_cc || channel.title" class="channel">
                         <div class="channel-label">{{ channel.title }}</div>
-                        <div class="fader-container" :class="{ 'dragging': dragState[channel.cc] }">
+                        <div class="fader-container" :class="{ 'dragging': dragState[channel.volume_cc] }">
                             <input
                                 ref="faders"
                                 class="fader"
                                 type="range"
                                 min="0"
                                 max="127"
-                                v-model.number="values[channel.cc]"
-                                @input="onInput(channel.cc)"
-                                @pointerdown="onPointerDown(channel.cc, $event)"
+                                v-model.number="values[channel.volume_cc]"
+                                @input="onInput(channel.volume_cc)"
+                                @pointerdown="onPointerDown(channel.volume_cc, $event)"
                             />
                         </div>
+
+                        <!-- Mute button: toggles mute state for channel.mute_cc -->
+                        <button
+                            class="mute-btn"
+                            :class="{ active: muteState[channel.mute_cc] > 0 }"
+                            @click="toggleMute(channel.mute_cc)"
+                            title="Toggle mute"
+                        >
+                            M
+                        </button>
+
                         <!-- Editable numeric value: on change/blur/enter send value like slider -->
                         <input
                             class="value-display"
                             type="number"
                             min="0"
                             max="127"
-                            :value="values[channel.cc] ?? 0"
-                            @change="onValueEdit(channel.cc, $event)"
-                            @blur="onValueEdit(channel.cc, $event)"
-                            @keydown.enter.prevent="onValueEdit(channel.cc, $event)"
+                            :value="values[channel.volume_cc] ?? 0"
+                            @change="onValueEdit(channel.volume_cc, $event)"
+                            @blur="onValueEdit(channel.volume_cc, $event)"
+                            @keydown.enter.prevent="onValueEdit(channel.volume_cc, $event)"
                         />
-                        <div class="cc-number">CC {{ channel.cc }}</div>
+
+                        <div class="cc-number">VCC {{ channel.volume_cc }} &nbsp; MuteCC {{ channel.mute_cc }}</div>
                     </div>
                 </div>
             </div>
@@ -39,7 +51,7 @@
 </template>
 
 <script>
-import { useRelativeDrag } from '../composables/useRelativeDrag'
+import { useRelativeDrag } from "../composables/useRelativeDrag"
 
 export default {
   data() {
@@ -47,8 +59,10 @@ export default {
       channelGroups: [],
       ws: null,
       values: {},
-      // per-cc drag state for visual feedback
+      // per-cc drag state for visual feedback (keyed by volume_cc)
       dragState: {},
+      // current mute state keyed by mute_cc (0 or 1)
+      muteState: {},
       // the composable handles global pointer listeners
       _dragComposable: null,
       _dragComposableStop: null
@@ -59,7 +73,7 @@ export default {
     this._dragComposable = useRelativeDrag()
   },
   methods: {
-    onPointerDown(cc, e) {
+    onPointerDown(volumeCc, e) {
       // Support command/meta-click for jump-to-click behavior
       const input = e.target
       if (e.metaKey || e.ctrlKey) {
@@ -70,19 +84,19 @@ export default {
         const offset = isVertical ? (rect.bottom - pos) : (pos - rect.left)
         const ratio = offset / (isVertical ? rect.height : rect.width)
         const value = Math.round(Math.min(1, Math.max(0, ratio)) * 127)
-        this.setValueAndSend(cc, value)
+        this.setValueAndSend(volumeCc, value)
         return
       }
 
       // Start relative drag using the composable
-      if (this.$set) this.$set(this.dragState, cc, true)
-      else this.dragState[cc] = true
+      if (this.$set) this.$set(this.dragState, volumeCc, true)
+      else this.dragState[volumeCc] = true
 
-      const stop = this._dragComposable.start(e, this.values[cc], input, (newVal) => {
-        this.setValueAndSend(cc, newVal)
+      const stop = this._dragComposable.start(e, this.values[volumeCc], input, (newVal) => {
+        this.setValueAndSend(volumeCc, newVal)
       }, () => {
-        if (this.$set) this.$set(this.dragState, cc, false)
-        else this.dragState[cc] = false
+        if (this.$set) this.$set(this.dragState, volumeCc, false)
+        else this.dragState[volumeCc] = false
       })
 
       this._dragComposableStop = stop && stop.stop ? stop.stop : null
@@ -90,79 +104,109 @@ export default {
 
     async initialize() {
       try {
-        const response = await fetch('/config')
+        const response = await fetch("/config")
         const cfg = await response.json()
         if (cfg.error) {
-          console.error('Config error', cfg.error)
+          console.error("Config error", cfg.error)
           return
         }
+
+        // Expect config.channel_groups each with channels that contain volume_cc and mute_cc
         this.channelGroups = cfg.channel_groups || []
-        // initialize values
+
+        // initialize values and muteState keyed by CC numbers
         this.channelGroups.forEach(group => {
           group.channels.forEach(ch => {
-            if (this.$set) this.$set(this.values, ch.cc, 0)
-            else this.values[ch.cc] = 0
+            const vol = ch.volume_cc ?? 0
+            const mute = ch.mute_cc ?? 0
+            if (this.$set) {
+              this.$set(this.values, vol, 0)
+              this.$set(this.muteState, mute, 0)
+            } else {
+              this.values[vol] = 0
+              this.muteState[mute] = 0
+            }
+
+            // ensure channel has both fields (if backend sent old 'cc' rename, support fallback)
+            if (ch.cc && !ch.volume_cc) ch.volume_cc = ch.cc
+            if (ch.mute_cc === undefined) ch.mute_cc = 0
           })
         })
+
         this.connectWs()
       } catch (e) {
-        console.error('Failed to load config', e)
+        console.error("Failed to load config", e)
       }
     },
 
     connectWs() {
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:"
       const wsUrl = `${protocol}//${window.location.host}/ws`
       this.ws = new WebSocket(wsUrl)
-      this.ws.onopen = () => { this.$emit('connection', true) }
+      this.ws.onopen = () => { this.$emit("connection", true) }
       this.ws.onmessage = (e) => {
         try {
           const data = JSON.parse(e.data)
-          if (data.type === 'midi_cc_update') {
+          if (data.type === "midi_cc_update") {
             const cc = data.cc
             const value = data.value
-            if (this.$set) this.$set(this.values, cc, value)
-            else this.values[cc] = value
+            // If this CC corresponds to a volume CC, update values; if it's a mute CC, update muteState
+            if (this.values.hasOwnProperty(cc)) {
+              if (this.$set) this.$set(this.values, cc, value)
+              else this.values[cc] = value
+            }
+            if (this.muteState.hasOwnProperty(cc)) {
+              // treat nonzero as muted (1), zero as unmuted (0)
+              const m = value ? 1 : 0
+              if (this.$set) this.$set(this.muteState, cc, m)
+              else this.muteState[cc] = m
+            }
           }
         } catch (_) {
           // ignore non-json
         }
       }
       this.ws.onclose = () => {
-        this.$emit('connection', false);
+        this.$emit("connection", false);
         setTimeout(() => this.connectWs(), 1500)
       }
-      this.ws.onerror = (err) => console.error('ws error', err)
+      this.ws.onerror = (err) => console.error("ws error", err)
     },
 
-    onInput(cc) {
-      // slider moved — ensure we use the same sending path
-      const value = parseInt(this.values[cc])
-      this.setValueAndSend(cc, value)
+    onInput(volumeCc) {
+      const value = parseInt(this.values[volumeCc])
+      this.setValueAndSend(volumeCc, value)
     },
 
-    onValueEdit(cc, event) {
-      // user edited the numeric input: parse, clamp, set and send
+    onValueEdit(volumeCc, event) {
       const raw = event && event.target ? event.target.value : event
       const parsed = parseInt(raw)
-      this.setValueAndSend(cc, parsed)
+      this.setValueAndSend(volumeCc, parsed)
+    },
+
+    toggleMute(muteCc) {
+      // toggle current mute state (0/1)
+      const current = this.muteState[muteCc] || 0
+      const newState = current ? 0 : 127
+      if (this.$set) this.$set(this.muteState, muteCc, newState)
+      else this.muteState[muteCc] = newState
+
+      // send CC message: 1 for muted, 0 for unmuted
+      const msg = JSON.stringify({ type: 'cc', cc: muteCc, value: newState })
+      if (this.ws && this.ws.readyState === WebSocket.OPEN) this.ws.send(msg)
     },
 
     setValueAndSend(cc, parsedValue) {
       let value = Number.isFinite(parsedValue) ? parseInt(parsedValue) : NaN
       if (Number.isNaN(value)) {
-        // invalid input, reset to current stored value or 0
         value = this.values[cc] ?? 0
       }
-      // clamp
       if (value < 0) value = 0
       if (value > 127) value = 127
-      // update reactive value
       if (this.$set) this.$set(this.values, cc, value)
       else this.values[cc] = value
 
-      // send via ws if open
-      const msg = JSON.stringify({ type: 'cc', cc, value })
+      const msg = JSON.stringify({ type: "cc", cc, value })
       if (this.ws && this.ws.readyState === WebSocket.OPEN) {
         this.ws.send(msg)
       }
@@ -174,12 +218,12 @@ export default {
 <style lang="scss" scoped>
     #channels {
         display: flex;
-        gap: 40px;
+        //gap: 20px;
         align-items: center;
         justify-content: center;
         height: 100%;
         max-height: 600px;
-        column-gap: 40px;
+        column-gap: 20px;
     }
 
     .channel-group {
@@ -200,7 +244,7 @@ export default {
 
     .group-channels {
         display: flex;
-        gap: 40px;
+        gap: 20px;
         align-items: center;
         height: 100%;
         position: relative;
@@ -217,7 +261,7 @@ export default {
         flex-direction: column;
         align-items: center;
         height: 100%;
-        min-width: 80px;
+        min-width: 60px;
     }
 
     .channel-label {
@@ -238,7 +282,7 @@ export default {
         justify-content: center;
         align-items: stretch;
         position: relative;
-        width: 60px;
+        width: 50px;
         margin: 10px 0;
         padding: 10px 0;
         border-radius: 6px;
@@ -272,8 +316,8 @@ export default {
 
     .fader::-webkit-slider-thumb {
         -webkit-appearance: none;
-        width: 50px;
-        height: 30px;
+        width: 30px;
+        height: 20px;
         background: lightgray;
         border: 2px solid #505050;
         border-radius: 4px;
@@ -319,5 +363,28 @@ export default {
         font-size: 11px;
         color: #999;
         margin-top: 5px;
+    }
+
+    /* Mute button styling */
+    .mute-btn {
+        background-color: transparent;
+        border: 2px solid #505050;
+        color: #e0e0e0;
+        font-size: 14px;
+        font-weight: bold;
+        padding: 4px 8px;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-top: 10px;
+        transition: background-color 0.2s, color 0.2s;
+    }
+
+    .mute-btn:hover {
+        background-color: rgba(255,255,255,0.1);
+    }
+
+    .mute-btn.active {
+        background-color: #F44336;
+        color: white;
     }
 </style>

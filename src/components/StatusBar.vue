@@ -1,6 +1,6 @@
 <template>
   <div id="status" :class="connected ? 'connected' : 'disconnected'">
-    {{ connected ? 'Connected' : 'Disconnected' }}
+    {{ connected ? "Connected" : "Disconnected" }}
   </div>
 </template>
 

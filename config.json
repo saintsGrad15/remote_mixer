@@ -6,12 +6,22 @@
       "title": "Vocals",
       "channels": [
         {
-          "cc": 21,
-          "title": "Vox 1"
+          "title": "Vox 1",
+          "volume_cc": 21,
+          "mute_cc": 31,
+          "verb_cc": 41
         },
         {
-          "cc": 22,
-          "title": "Vox 2"
+          "title": "Vox 2",
+          "volume_cc": 22,
+          "mute_cc": 32,
+          "verb_cc": 42
+        },
+        {
+          "title": "Vox 3",
+          "volume_cc": 23,
+          "mute_cc": 33,
+          "verb_cc": 43
         }
       ]
     },
@@ -19,12 +29,22 @@
       "title": "Instruments",
       "channels": [
         {
-          "cc": 23,
-          "title": "Guitar"
+          "title": "Inst 1",
+          "volume_cc": 24,
+          "mute_cc": 34,
+          "verb_cc": 44
         },
         {
-          "cc": 24,
-          "title": "Keys"
+          "title": "Inst 2",
+          "volume_cc": 25,
+          "mute_cc": 35,
+          "verb_cc": 45
+        },
+        {
+          "title": "Inst 3",
+          "volume_cc": 26,
+          "mute_cc": 36,
+          "verb_cc": 46
         }
       ]
     },
@@ -32,12 +52,14 @@
       "title": "Main",
       "channels": [
         {
-          "cc": 28,
-          "title": "Monitor"
+          "title": "Monitor",
+          "volume_cc": 28,
+          "mute_cc": 38
         },
         {
-          "cc": 29,
-          "title": "Master"
+          "title": "Master",
+          "volume_cc": 29,
+          "mute_cc": 39
         }
       ]
     }

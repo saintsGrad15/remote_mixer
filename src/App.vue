@@ -9,8 +9,8 @@
 </template>
 
 <script>
-    import MixerView from './components/MixerView.vue'
-    import StatusBar from './components/StatusBar.vue'
+    import MixerView from "./components/MixerView.vue"
+    import StatusBar from "./components/StatusBar.vue"
 
     export default {
         components: { MixerView, StatusBar },
