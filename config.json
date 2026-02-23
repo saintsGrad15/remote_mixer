@@ -9,19 +9,22 @@
           "title": "Vox 1",
           "volume_cc": 21,
           "mute_cc": 31,
-          "verb_cc": 41
+          "verb_cc": 41,
+          "mon_cc": 51
         },
         {
           "title": "Vox 2",
           "volume_cc": 22,
           "mute_cc": 32,
-          "verb_cc": 42
+          "verb_cc": 42,
+          "mon_cc": 52
         },
         {
           "title": "Vox 3",
           "volume_cc": 23,
           "mute_cc": 33,
-          "verb_cc": 43
+          "verb_cc": 43,
+          "mon_cc": 53
         }
       ]
     },
@@ -32,25 +35,35 @@
           "title": "Inst 1",
           "volume_cc": 24,
           "mute_cc": 34,
-          "verb_cc": 44
+          "verb_cc": 44,
+          "mon_cc": 54
         },
         {
           "title": "Inst 2",
           "volume_cc": 25,
           "mute_cc": 35,
-          "verb_cc": 45
+          "verb_cc": 45,
+          "mon_cc": 55
         },
         {
+          "hide": true,
+
           "title": "Inst 3",
           "volume_cc": 26,
           "mute_cc": 36,
-          "verb_cc": 46
+          "verb_cc": 46,
+          "mon_cc": 56
         }
       ]
     },
     {
       "title": "Main",
       "channels": [
+        {
+          "title": "Music",
+          "volume_cc": 27,
+          "mute_cc": 37
+        },
         {
           "title": "Monitor",
           "volume_cc": 28,

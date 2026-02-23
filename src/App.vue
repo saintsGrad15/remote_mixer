@@ -41,7 +41,7 @@
         min-height: 0; /* allow the grid row to properly constrain children */
         overflow: auto;
 
-        padding-top: 40px;
-        padding-bottom: 40px;
+        padding-top: 10px;
+        padding-bottom: 10px;
     }
 </style>
