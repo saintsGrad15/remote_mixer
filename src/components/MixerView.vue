@@ -1,5 +1,15 @@
 <template>
   <div id="channels">
+    <!-- Preset dropdown in the top-right corner -->
+    <div class="preset-dropdown">
+      <label for="preset-select">Presets</label>
+      <select id="preset-select" v-model="selectedPreset" @change="onPresetChange">
+        <option :value="SAVE_SENTINEL">Save preset...</option>
+        <option disabled>────────</option>
+        <option v-for="name in presets" :key="name" :value="name">{{ name }}</option>
+      </select>
+    </div>
+
     <template v-for="(group, gidx) in channelGroups" :key="gidx">
       <div class="channel-group">
         <div class="group-title">{{ group.title }}</div>
@@ -91,7 +101,13 @@ export default {
       _throttleIntervalMs: 20,
       _throttleTimer: null,
       _lastSentAt: 0,
-      _pendingMessages: {}
+      _pendingMessages: {},
+
+      // Preset support
+      presets: [],
+      selectedPreset: null,
+      SAVE_SENTINEL: '__save__',
+      _storageKey: 'remote_mixer_presets'
     };
   },
   computed: {
@@ -112,6 +128,8 @@ export default {
   mounted() {
     this.initialize();
     this._dragComposable = useRelativeDrag();
+    // load presets from localStorage after initialization started
+    this.loadPresetsFromStorage();
   },
   methods: {
     // returns an array of faders to render for a channel (volume always first, optional verb)
@@ -322,7 +340,118 @@ export default {
           sendPending()
         }, this._throttleIntervalMs)
       }
+    },
+
+    // Preset storage helpers
+    loadPresetsFromStorage() {
+      try {
+        const raw = localStorage.getItem(this._storageKey);
+        if (!raw) {
+          this.presets = [];
+          return;
+        }
+        const obj = JSON.parse(raw) || {};
+        this.presets = Object.keys(obj).sort((a, b) => a.localeCompare(b));
+      } catch (e) {
+        console.error('Failed to load presets', e);
+        this.presets = [];
+      }
+    },
+
+    savePresetWithName(name) {
+      if (!name || !name.trim()) return;
+      const trimmed = name.trim();
+
+      // read existing
+      let obj = {};
+      try {
+        const raw = localStorage.getItem(this._storageKey);
+        obj = raw ? (JSON.parse(raw) || {}) : {};
+      } catch (e) {
+        obj = {};
+      }
+
+      // deep copy current values and muteState
+      const copyValues = {};
+      for (const [k, v] of Object.entries(this.values)) copyValues[k] = v;
+      const copyMute = {};
+      for (const [k, v] of Object.entries(this.muteState)) copyMute[k] = v;
+
+      obj[trimmed] = { values: copyValues, muteState: copyMute };
+
+      try {
+        localStorage.setItem(this._storageKey, JSON.stringify(obj));
+      } catch (e) {
+        console.error('Failed to save preset', e);
+        return;
+      }
+
+      this.loadPresetsFromStorage();
+      // select the newly created preset in the dropdown
+      this.selectedPreset = trimmed;
+    },
+
+    applyPresetByName(name) {
+      if (!name) return;
+      let obj = {};
+      try {
+        const raw = localStorage.getItem(this._storageKey);
+        obj = raw ? (JSON.parse(raw) || {}) : {};
+      } catch (e) {
+        console.error('Failed to read presets', e);
+        return;
+      }
+
+      const preset = obj[name];
+      if (!preset) return;
+
+      // Ask for confirmation
+      const ok = window.confirm('Are you sure?');
+      if (!ok) {
+        // revert selection
+        this.selectedPreset = null;
+        return;
+      }
+
+      // Apply values and muteState
+      const pvals = preset.values || {};
+      const pmute = preset.muteState || {};
+
+      // Update values store reactively
+      for (const [k, v] of Object.entries(pvals)) {
+        const nkey = isNaN(Number(k)) ? k : Number(k);
+        if (this.$set) this.$set(this.values, nkey, v);
+        else this.values[nkey] = v;
+      }
+
+      for (const [k, v] of Object.entries(pmute)) {
+        const nkey = isNaN(Number(k)) ? k : Number(k);
+        if (this.$set) this.$set(this.muteState, nkey, v);
+        else this.muteState[nkey] = v;
+      }
+
+      // After loading, clear selection so the user can re-select if desired
+      this.selectedPreset = null;
+    },
+
+    onPresetChange() {
+      const sel = this.selectedPreset;
+      if (sel === this.SAVE_SENTINEL) {
+        const name = window.prompt('Enter a preset name:');
+        if (name && name.trim()) {
+          this.savePresetWithName(name);
+        }
+        // reset selection
+        this.selectedPreset = null;
+        return;
+      }
+
+      // otherwise a real preset was chosen
+      if (sel) {
+        this.applyPresetByName(sel);
+      }
     }
+
   }
 };
 </script>
@@ -339,6 +468,35 @@ $ticks-width: 30px;
   height: 100%;
   max-height: 600px;
   column-gap: 20px;
+}
+
+/* Preset dropdown styling (top-right) */
+.preset-dropdown {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 40;
+
+  display: flex;
+  flex-direction: row;
+  column-gap: 10px;
+  align-items: center;
+
+  font-size: x-large;
+}
+
+.preset-dropdown option {
+  font-size: x-large;
+  color: black;
+}
+
+.preset-dropdown select {
+  background: #e0e0e0;
+  color: rgba(0,0,0,0.6);
+  border: 1px solid rgba(255,255,255,0.08);
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: x-large;
 }
 
 .channel-group {
