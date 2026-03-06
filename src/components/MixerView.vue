@@ -3,11 +3,21 @@
     <!-- Preset dropdown in the top-right corner -->
     <div class="preset-dropdown">
       <label for="preset-select">Presets</label>
-      <select id="preset-select" v-model="selectedPreset" @change="onPresetChange">
-        <option :value="SAVE_SENTINEL">Save preset...</option>
-        <option disabled>────────</option>
-        <option v-for="name in presets" :key="name" :value="name">{{ name }}</option>
-      </select>
+      <div class="preset-controls">
+        <select id="preset-select" v-model="selectedPreset" @change="onPresetChange">
+          <option :value="SAVE_SENTINEL">Save preset...</option>
+          <option disabled>────────</option>
+          <option v-for="name in presets" :key="name" :value="name">{{ name }}</option>
+        </select>
+
+        <!-- Visible list of presets with small delete buttons beside each -->
+        <div class="preset-list" v-if="presets.length">
+          <div class="preset-item" v-for="name in presets" :key="name">
+            <button class="preset-delete" @click.prevent="deletePreset(name)" title="Delete preset">✕</button>
+            <span class="preset-name">{{ name }}</span>
+          </div>
+        </div>
+      </div>
     </div>
 
     <template v-for="(group, gidx) in channelGroups" :key="gidx">
@@ -348,10 +358,26 @@ export default {
         const raw = localStorage.getItem(this._storageKey);
         if (!raw) {
           this.presets = [];
+          // no presets -> clear any restored selection
+          this.selectedPreset = null;
           return;
         }
         const obj = JSON.parse(raw) || {};
         this.presets = Object.keys(obj).sort((a, b) => a.localeCompare(b));
+
+        // Restore last selected preset (persisted separately) if it still exists
+        try {
+          const lastKey = this._storageKey + '_last';
+          const last = localStorage.getItem(lastKey);
+          if (last && this.presets.includes(last)) {
+            this.selectedPreset = last;
+          } else {
+            this.selectedPreset = null;
+          }
+        } catch (e) {
+          // ignore restore errors and leave selection cleared
+          this.selectedPreset = null;
+        }
       } catch (e) {
         console.error('Failed to load presets', e);
         this.presets = [];
@@ -389,6 +415,8 @@ export default {
       this.loadPresetsFromStorage();
       // select the newly created preset in the dropdown
       this.selectedPreset = trimmed;
+      // persist last selected preset
+      try { localStorage.setItem(this._storageKey + '_last', trimmed); } catch (e) { /* ignore */ }
     },
 
     applyPresetByName(name) {
@@ -409,7 +437,7 @@ export default {
       const ok = window.confirm('Are you sure?');
       if (!ok) {
         // revert selection
-        this.selectedPreset = null;
+        // keep prior selection (don't force clear) — preserve user's last selection
         return;
       }
 
@@ -430,8 +458,9 @@ export default {
         else this.muteState[nkey] = v;
       }
 
-      // After loading, clear selection so the user can re-select if desired
-      this.selectedPreset = null;
+      // After loading, keep the selection visible and persist it as the last selected
+      this.selectedPreset = name;
+      try { localStorage.setItem(this._storageKey + '_last', name); } catch (e) { /* ignore */ }
     },
 
     onPresetChange() {
@@ -446,10 +475,37 @@ export default {
         return;
       }
 
-      // otherwise a real preset was chosen
+      // otherwise a real preset was chosen -> apply
       if (sel) {
         this.applyPresetByName(sel);
       }
+    },
+
+    deletePreset(name) {
+      if (!name) return;
+      const confirmDel = window.confirm(`Are you sure you want to delete ${name}?`);
+      if (!confirmDel) return;
+
+      try {
+        const raw = localStorage.getItem(this._storageKey);
+        const obj = raw ? (JSON.parse(raw) || {}) : {};
+        if (obj.hasOwnProperty(name)) {
+          delete obj[name];
+          localStorage.setItem(this._storageKey, JSON.stringify(obj));
+        }
+        // If the deleted preset was the persisted last selection, remove that too
+        try {
+          const lastKey = this._storageKey + '_last';
+          const last = localStorage.getItem(lastKey);
+          if (last === name) localStorage.removeItem(lastKey);
+        } catch (e) { /* ignore */ }
+      } catch (e) {
+        console.error('Failed to delete preset', e);
+      }
+
+      // reload preset list and clear selection if it was the deleted one
+      this.loadPresetsFromStorage();
+      if (this.selectedPreset === name) this.selectedPreset = null;
     }
 
   }
@@ -485,18 +541,58 @@ $ticks-width: 30px;
   font-size: x-large;
 }
 
-.preset-dropdown option {
-  font-size: x-large;
-  color: black;
+/* New preset list and delete button styles */
+.preset-controls {
+  display: flex;
+  flex-direction: row;
+  column-gap: 10px;
+  align-items: center;
 }
 
-.preset-dropdown select {
-  background: #e0e0e0;
-  color: rgba(0,0,0,0.6);
-  border: 1px solid rgba(255,255,255,0.08);
-  padding: 6px 10px;
-  border-radius: 4px;
+#preset-select {
   font-size: x-large;
+}
+
+.preset-list {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 240px;
+  overflow: auto;
+  background: rgba(0,0,0,0.05);
+  padding: 6px;
+  border-radius: 4px;
+}
+
+.preset-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.preset-delete {
+  background: #ff4d4f;
+  color: white;
+  border: none;
+  padding: 2px 6px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.preset-delete:hover {
+  opacity: 0.9;
+}
+
+.preset-name {
+  color: white;
+  font-size: 13px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  max-width: 160px;
 }
 
 .channel-group {
