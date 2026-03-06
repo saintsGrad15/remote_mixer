@@ -1,6 +1,5 @@
 <template>
     <div id="remote-mixer">
-        <header id="header">Remote Mixer</header>
         <div id="mixer-container">
             <MixerView @connection="onConnection"/>
         </div>
@@ -31,7 +30,8 @@
         height: 100vh;
 
         display: grid;
-        grid-template-rows: auto 1fr auto;
+        /* header removed: top row is the mixer container, bottom row is StatusBar */
+        grid-template-rows: 1fr auto;
     }
 
     #mixer-container {
