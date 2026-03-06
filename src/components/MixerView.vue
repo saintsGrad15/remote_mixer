@@ -1,5 +1,10 @@
 <template>
   <div id="channels">
+    <!-- Clear button in the top-left corner -->
+    <div class="clear-button">
+      <button class="clear-btn" @click="onClearClick">Clear</button>
+    </div>
+
     <!-- Preset dropdown in the top-right corner -->
     <div class="preset-dropdown">
       <label for="preset-select">Presets</label>
@@ -306,33 +311,33 @@ export default {
 
     sendWSCCMessage(cc, value) {
       // Store the latest value for this CC in the pending map
-      this._pendingMessages[cc] = value
+      this._pendingMessages[cc] = value;
 
       const sendPending = () => {
-        const entries = Object.entries(this._pendingMessages)
-        if (entries.length === 0) return
+        const entries = Object.entries(this._pendingMessages);
+        if (entries.length === 0) return;
 
         // Clear pending map before sending to avoid re-entrancy issues
-        this._pendingMessages = {}
-        this._lastSentAt = Date.now()
+        this._pendingMessages = {};
+        this._lastSentAt = Date.now();
 
         // Send each pending cc message as individual CC messages (preserves previous behavior)
         if (this.ws && this.ws.readyState === WebSocket.OPEN) {
           for (const [pcc, pval] of entries) {
             try {
-              this.ws.send(JSON.stringify({ type: "cc", cc: Number(pcc), value: pval }))
+              this.ws.send(JSON.stringify({type: "cc", cc: Number(pcc), value: pval}));
             } catch (e) {
               // ignore send errors; will not retry for now
             }
           }
         }
-      }
+      };
 
-      const now = Date.now()
+      const now = Date.now();
 
       // If enough time has passed since last send, send immediately
       if (!this._lastSentAt || (now - this._lastSentAt) >= this._throttleIntervalMs) {
-        sendPending()
+        sendPending();
       }
 
       // Ensure a periodic timer exists while there are pending messages that arrive faster than interval
@@ -341,14 +346,14 @@ export default {
         this._throttleTimer = setInterval(() => {
           if (Object.keys(this._pendingMessages).length === 0) {
             // nothing left to send -> stop the timer
-            clearInterval(this._throttleTimer)
-            this._throttleTimer = null
-            return
+            clearInterval(this._throttleTimer);
+            this._throttleTimer = null;
+            return;
           }
 
           // send latest pending batch
-          sendPending()
-        }, this._throttleIntervalMs)
+          sendPending();
+        }, this._throttleIntervalMs);
       }
     },
 
@@ -366,18 +371,18 @@ export default {
         this.presets = Object.keys(obj).sort((a, b) => a.localeCompare(b));
 
         // Restore last selected preset (persisted separately) if it still exists
-        try {
-          const lastKey = this._storageKey + '_last';
-          const last = localStorage.getItem(lastKey);
-          if (last && this.presets.includes(last)) {
-            this.selectedPreset = last;
-          } else {
-            this.selectedPreset = null;
-          }
-        } catch (e) {
-          // ignore restore errors and leave selection cleared
-          this.selectedPreset = null;
-        }
+        // try {
+        //   const lastKey = this._storageKey + '_last';
+        //   const last = localStorage.getItem(lastKey);
+        //   if (last && this.presets.includes(last)) {
+        //     this.selectedPreset = last;
+        //   } else {
+        //     this.selectedPreset = null;
+        //   }
+        // } catch (e) {
+        //   // ignore restore errors and leave selection cleared
+        //   this.selectedPreset = null;
+        // }
       } catch (e) {
         console.error('Failed to load presets', e);
         this.presets = [];
@@ -403,7 +408,7 @@ export default {
       const copyMute = {};
       for (const [k, v] of Object.entries(this.muteState)) copyMute[k] = v;
 
-      obj[trimmed] = { values: copyValues, muteState: copyMute };
+      obj[trimmed] = {values: copyValues, muteState: copyMute};
 
       try {
         localStorage.setItem(this._storageKey, JSON.stringify(obj));
@@ -416,7 +421,7 @@ export default {
       // select the newly created preset in the dropdown
       this.selectedPreset = trimmed;
       // persist last selected preset
-      try { localStorage.setItem(this._storageKey + '_last', trimmed); } catch (e) { /* ignore */ }
+      // try { localStorage.setItem(this._storageKey + '_last', trimmed); } catch (e) { /* ignore */ }
     },
 
     applyPresetByName(name) {
@@ -459,8 +464,8 @@ export default {
       }
 
       // After loading, keep the selection visible and persist it as the last selected
-      this.selectedPreset = name;
-      try { localStorage.setItem(this._storageKey + '_last', name); } catch (e) { /* ignore */ }
+      // this.selectedPreset = name;
+      // try { localStorage.setItem(this._storageKey + '_last', name); } catch (e) { /* ignore */ }
     },
 
     onPresetChange() {
@@ -494,11 +499,11 @@ export default {
           localStorage.setItem(this._storageKey, JSON.stringify(obj));
         }
         // If the deleted preset was the persisted last selection, remove that too
-        try {
-          const lastKey = this._storageKey + '_last';
-          const last = localStorage.getItem(lastKey);
-          if (last === name) localStorage.removeItem(lastKey);
-        } catch (e) { /* ignore */ }
+        // try {
+        // const lastKey = this._storageKey + '_last';
+        // const last = localStorage.getItem(lastKey);
+        // if (last === name) localStorage.removeItem(lastKey);
+        // } catch (e) { /* ignore */ }
       } catch (e) {
         console.error('Failed to delete preset', e);
       }
@@ -506,8 +511,37 @@ export default {
       // reload preset list and clear selection if it was the deleted one
       this.loadPresetsFromStorage();
       if (this.selectedPreset === name) this.selectedPreset = null;
-    }
+    },
 
+    // Handler that prompts then clears all mixer values and mutes
+    onClearClick() {
+      const ok = window.confirm('Are you sure?');
+      if (!ok) return;
+      this.clearAll();
+    },
+
+    clearAll() {
+      // Set every fader value to 0 and send CCs
+      try {
+        for (const key of Object.keys(this.values)) {
+          const cc = isNaN(Number(key)) ? key : Number(key);
+          // update state and send
+          if (this.$set) this.$set(this.values, cc, 0);
+          else this.values[cc] = 0;
+          this.sendWSCCMessage(cc, 0);
+        }
+
+        // Set every mute to 'on' (127) and send CCs
+        for (const key of Object.keys(this.muteState)) {
+          const cc = isNaN(Number(key)) ? key : Number(key);
+          if (this.$set) this.$set(this.muteState, cc, 127);
+          else this.muteState[cc] = 127;
+          this.sendWSCCMessage(cc, 127);
+        }
+      } catch (e) {
+        console.error('Failed to clear mixers', e);
+      }
+    },
   }
 };
 </script>
@@ -524,6 +558,29 @@ $ticks-width: 30px;
   height: 100%;
   max-height: 600px;
   column-gap: 20px;
+}
+
+/* Clear button (top-left) */
+.clear-button {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 50;
+}
+
+.clear-btn {
+  background: rgba(250, 7, 7, 0.4);
+  color: #e0e0e0;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+
+  font-size: x-large;
+}
+
+.clear-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
 }
 
 /* Preset dropdown styling (top-right) */
@@ -560,7 +617,7 @@ $ticks-width: 30px;
   gap: 6px;
   max-height: 240px;
   overflow: auto;
-  background: rgba(0,0,0,0.05);
+  background: rgba(0, 0, 0, 0.05);
   padding: 6px;
   border-radius: 4px;
 }
