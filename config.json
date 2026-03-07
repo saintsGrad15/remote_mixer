@@ -57,7 +57,7 @@
           "volume_cc": 26,
           "mute_cc": 36,
           "verb_cc": 46,
-          "mon_cc": 56
+          "mon_cc_": 56
         }
       ]
     },
@@ -65,7 +65,13 @@
       "title": "Music",
       "channels": [
         {
-          "title_": "Music",
+          "title": "QLab",
+          "volume_cc": 67,
+          "mute_cc": 77,
+          "mon_cc": 87
+        },
+        {
+          "title": "Spotify",
           "volume_cc": 27,
           "mute_cc": 37
         }
@@ -77,7 +83,8 @@
         {
           "title": "Monitor",
           "volume_cc": 28,
-          "mute_cc": 38
+          "mute_cc": 38,
+          "hide": true
         },
         {
           "title": "Master",
