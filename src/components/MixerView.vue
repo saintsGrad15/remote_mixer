@@ -7,21 +7,22 @@
 
     <!-- Preset dropdown in the top-right corner -->
     <div class="preset-dropdown">
-      <label for="preset-select">Presets</label>
       <div class="preset-controls">
+
+        <!-- Visible list of presets with small delete buttons beside each -->
+        <div class="preset-list" v-if="selectedPreset !== null">
+          <div class="preset-item">
+            <span class="preset-name">Delete Preset "{{ selectedPreset }}"</span>
+            <button class="preset-delete" @click.prevent="deletePreset(selectedPreset)" title="Delete preset">✕</button>
+          </div>
+        </div>
+
+        <label for="preset-select">Presets</label>
         <select id="preset-select" v-model="selectedPreset" @change="onPresetChange">
           <option :value="SAVE_SENTINEL">Save preset...</option>
           <option disabled>────────</option>
           <option v-for="name in presets" :key="name" :value="name">{{ name }}</option>
         </select>
-
-        <!-- Visible list of presets with small delete buttons beside each -->
-        <div class="preset-list" v-if="presets.length">
-          <div class="preset-item" v-for="name in presets" :key="name">
-            <button class="preset-delete" @click.prevent="deletePreset(name)" title="Delete preset">✕</button>
-            <span class="preset-name">{{ name }}</span>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -476,7 +477,7 @@ export default {
           this.savePresetWithName(name);
         }
         // reset selection
-        this.selectedPreset = null;
+        this.selectedPreset = name;
         return;
       }
 
